@@ -17,13 +17,13 @@ export const createMarcha = async (req, res) => { // Exportación nombrada
 };
 
 export const getMarchas = async (req, res) => {
- try {
-
- const marchas = await Marcha.find(); 
- res.json(marchas);
- } catch (err) {
- res.status(500).json({ error: "Error al obtener marchas" });
- }
+  try {
+    const marchas = await Marcha.obtenerMarchas(); // O la función que uses
+    res.json(marchas);
+  } catch (err) {
+    console.error('❌ Error de CONEXIÓN a la BD en getMarchas:', err); // <-- ¡Añade o confirma esta línea!
+    res.status(500).json({ error: "Error al obtener marchas" });
+  }
 };
 
 export const getMarcha = async (req, res) => {

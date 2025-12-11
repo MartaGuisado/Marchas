@@ -1,47 +1,52 @@
 // backend/controllers/bandasController.js
-import * as Banda from "../models/bandasModel.js";
+import * as Banda from "../models/bandasModel.js"; // Asegurar importación agrupada
 
-export const createBanda = async (req, res, next) => { 
-try {
-const banda = await Banda.create(req.body);
- res.status(201).json(banda);
-} catch (err) {
- next(err);
-}
+export const obtenerBandas = async (req, res, next) => {
+  try {
+    // CORRECCIÓN: Usar obtenerBandas (asumido que se llama igual)
+    const bandas = await Banda.obtenerBandas(); 
+    res.json(bandas);
+  } catch (err) {
+    next(err);
+  }
 };
 
-export const getBandas = async (req, res, next) => {
- try {
- const bandas = await Banda.findAll();
- res.json(bandas);
- } catch (err) {
- next(err);
- 
- }
+export const obtenerBandaPorId = async (req, res, next) => {
+  try {
+    // CORRECCIÓN: Usar obtenerBandaPorId
+    const banda = await Banda.obtenerBandaPorId(req.params.id); 
+    res.json(banda);
+  } catch (err) {
+    next(err);
+  }
 };
 
-export const getBanda = async (req, res, next) => {
- try {
- const banda = await Banda.findByPk(req.params.id);
- res.json(banda);
- } catch (err) {
- next(err);
- }
+export const crearBanda = async (req, res, next) => {
+  try {
+    // CORRECCIÓN: Usar crearBanda
+    const nuevaBandaId = await Banda.crearBanda(req.body);
+    res.status(201).json({ id: nuevaBandaId, message: "Banda creada" });
+  } catch (err) {
+    next(err);
+  }
 };
 
-export const updateBanda = async (req, res, next) => {
- try {
- await Banda.update(req.body, { where: { id: req.params.id } });
- res.json({ message: "Banda actualizada" });
- } catch (err) {
- next(err);
- }
+export const actualizarBanda = async (req, res, next) => {
+  try {
+    // CORRECCIÓN: Usar actualizarBanda
+    await Banda.actualizarBanda(req.params.id, req.body);
+    res.json({ message: "Banda actualizada" });
+  } catch (err) {
+    next(err);
+  }
 };
 
-export const deleteBanda = async (req, res, next) => {
- try {
-  await Banda.destroy({ where: { id: req.params.id } });    res.json({ message: "Banda eliminada" });
-} catch (err) {
-  next(err);
- }
+export const eliminarBandaPorId = async (req, res, next) => {
+  try {
+    // CORRECCIÓN: Usar eliminarBandaPorId
+    await Banda.eliminarBandaPorId(req.params.id);
+    res.json({ message: "Banda eliminada" });
+  } catch (err) {
+    next(err);
+  }
 };
