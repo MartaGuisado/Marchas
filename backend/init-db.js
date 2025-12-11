@@ -1,4 +1,3 @@
-// backend-bazar/init-db.js
 import 'dotenv/config';
 import pool from './config/db.js';
 
@@ -9,7 +8,7 @@ import pool from './config/db.js';
  * 
  * PROPÓSITO:
  * Este script crea todas las tablas necesarias para el funcionamiento
- * del sistema de bazar (tienda online).
+ * del sistema de marchas.
  * 
  * USO:
  * node init-db.js
@@ -21,26 +20,29 @@ import pool from './config/db.js';
  * - Inserta datos de ejemplo para facilitar las pruebas
  * 
  * ESTRUCTURA DE LA BASE DE DATOS:
- * 1. clientes - Usuarios registrados en el sistema
- * 2. categorias - Categorías de productos
- * 3. productos - Catálogo de productos
- * 4. pedidos - Cabecera de pedidos de clientes
- * 5. pedidos_productos - Líneas de pedido (productos específicos)
+ * 1. marchas - Listado de marchas disponibles en el sistema
+ * 2. autores - Compositores de las marchas
+ * 3. bandas - Diferenetes bandas musicales que interpretan las marchas
+ * 4. marchas_autores - VIncular marchas con sus autores
+ * 5. usuarios - usuarios registrados en el sistema
+ * 6. usuarios_favoritos - Vincular usuarios con sus marchas favoritas
  */
 
 /**
  * Función principal que orquesta la creación de todas las tablas
  */
+
 async function crearTablas() {
   try {
     console.log("🚀 Iniciando creación de base de datos...");
 
     // Crear tablas en orden correcto (respetando dependencias)
     await crearTablaMarchas();
-    
     await crearTablaAutores();
     await crearTablaBandas();
     await crearTablaMarchasAutores();
+    await crearTablaUsuarios();
+    await crearTablaUsuariosFavoritos();
     
     // Insertar datos de ejemplo para pruebas
     await insertarDatosDeEjemplo();
@@ -62,15 +64,25 @@ async function crearTablas() {
  * TABLA: MARCHAS
  * ==========================================
  * 
- * PROPÓSITO: Almacena los usuarios registrados en el sistema
+ * PROPÓSITO: Almacena los marchas disponibles en el sistema
  * 
  * CAMPOS:
  * - id: Identificador único (clave primaria)
- * - nombre: Nombre completo del cliente
- * - email: Dirección de correo (única, usada para login)
- * - password: Contraseña hasheada con bcrypt
- * - creado_en: Fecha de registro del usuario
+ * - titulo: nombre de la marcha
+ * - anio: año de composición de la marcha
+ * - descripcion: Descripción detallada de la marcha
+ * - duracion_segundos: Duración de la marcha en segundos
+ * - tipo: Tipo de marcha (cornetas y tambores, capilla musical, banda de música, agrupación musical, otros estilos)
+ * - dedicatoria: A quién está dedicada la marcha
+ * - created_at: Fecha de creación del registro
+ * - updated_at: Fecha de última actualización del registro
+ * 
+ * RELACIONES:
+ * - Una marcha puede tener múltiples autores (tabla marchas_autores)
+ * - Una marcha puede ser interpretada por múltiples bandas (tabla bandas)
+ * - Los usuarios pueden marcar marchas como favoritas (tabla usuarios_favoritos)
  */
+
 async function crearTablaMarchas() {
   console.log("👤 Creando tabla 'marchas'...");
   
@@ -165,6 +177,7 @@ async function crearTablaBandas() {
         'otros estilos'
     ) NOT NULL,
     localidad VARCHAR(255) NULL,
+    anio_fundacion INT NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL
 ); ENGINE=InnoDB 
@@ -214,65 +227,174 @@ async function crearTablaMarchasAutores() {
 
 /**
  * ==========================================
+ * TABLA: USUARIOS
+ * ==========================================
+ * 
+ * PROPÓSITO: * Almacenar la información de los usuarios registrados en el sistema.
+ * Estos usuarios podrán iniciar sesión y marcar marchas como favoritas.
+ * 
+ * CAMPOS:
+ * - id: Identificador único de la línea de pedido
+ * - nombre: ID del pedido al que pertenece esta línea (FK)
+ * - email: ID del producto incluido en esta línea (FK)
+ * - password: Cantidad de unidades del producto
+ * - creado_en: Fecha de creación del registro
+ * - actualizado_en: Fecha de última actualización del registro
+ * - email_verificado: Indica si el mail ha sido verificado
+ * - activo: Indica si el usuario está activo
+ * 
+ * RELACIÓN:
+ * Un usuario puede tener múltiples marchas favoritas (tabla usuarios_favoritos)
+ * Las marchas pueden ser marcadas como favoritas por múltiples usuarios
+ */
+
+async function crearTablaUsuarios() {
+  console.log("📋 Creando tabla 'usuarios'...");
+  
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS usuarios (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL,
+  email VARCHAR(100) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  email_verificado TINYINT(1) DEFAULT 0,
+  activo TINYINT(1) DEFAULT 1,
+  INDEX idx_nombre (nombre)
+);
+ENGINE=InnoDB
+COMMENT='Usuario registrados en el sistema';
+`);
+  
+  console.log("✅ Tabla 'usuarios' creada");
+}
+
+/**
+ * ==========================================
+ * TABLA: USUARIOS_FAVORITOS
+ * ==========================================
+ * PROPÓSITO: Vincular usuarios con sus marchas favoritas (relación muchos a muchos)
+ * 
+ * CAMPOS:
+ * - id: Identificador único
+ * - usuario_id: ID del usuario que marcó como favorito (FK)
+ * - marcha_id: ID de la marcha marcada como favorita (FK)
+ * - creado_en : Fecha de creación del registro
+ * 
+ * RELACIÓN:
+ * Un usuario puede tener múltiples marchas favoritas
+ * Una marcha puede ser favorita de múltiples usuarios
+ */
+async function crearTablaFavoritos() {
+  console.log("📋 Creando tabla 'favoritos'...");
+  
+  await pool.query(`
+CREATE TABLE usuarios_favoritos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  usuario_id INT NOT NULL,
+  marcha_id INT NOT NULL,
+  creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_fav (usuario_id, marcha_id),
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+  FOREIGN KEY (marcha_id) REFERENCES marchas(id) ON DELETE CASCADE
+);
+ENGINE=InnoDB
+COMMENT='Usuario registrados en el sistema';
+`);
+
+/**
+ * ==========================================
  * INSERCIÓN DE DATOS DE EJEMPLO
  * ==========================================
  * 
  * PROPÓSITO: Facilitar las pruebas insertando datos realistas
  * 
- * CATEGORÍAS DISPONIBLES:
- * - Ropa: Productos de vestimenta
- * - Electrónicos: Dispositivos y gadgets tecnológicos  
- * - Hogar: Artículos para el hogar y decoración
  */
 async function insertarDatosDeEjemplo() {
   console.log("🧪 Insertando datos de ejemplo...");
 
   try {
-    // Limpiar datos existentes para recrear con estructura correcta
-    await pool.query('DELETE FROM pedidos_productos');
-    await pool.query('DELETE FROM pedidos');
-    await pool.query('DELETE FROM productos');
-    await pool.query('DELETE FROM clientes');
+    // Limpiar relación primero
+    await pool.query('DELETE FROM marchas_autores');
+    await pool.query('DELETE FROM marchas');
+    await pool.query('DELETE FROM autores');
+    await pool.query('DELETE FROM bandas');
 
-    // Resetear auto_increment
-    await pool.query('ALTER TABLE productos AUTO_INCREMENT = 1');
-    await pool.query('ALTER TABLE clientes AUTO_INCREMENT = 1');
+    // Reset de auto_increment
+    await pool.query('ALTER TABLE marchas AUTO_INCREMENT = 1');
+    await pool.query('ALTER TABLE autores AUTO_INCREMENT = 1');
+    await pool.query('ALTER TABLE bandas AUTO_INCREMENT = 1');
 
     console.log("🗑️ Datos anteriores limpiados");
 
-    // Insertar productos de ejemplo con las 3 categorías
+
+    // ======================
+    // AUTORES
+    // ======================
     await pool.query(`
-      INSERT INTO productos (nombre, descripcion, precio, stock, categoria, imagen_url) VALUES 
-      ('Camiseta Básica', 'Camiseta de algodón 100% en varios colores', 19.99, 50, 'Ropa', 'https://via.placeholder.com/300x300?text=Camiseta'),
-      ('Pantalón Vaquero', 'Vaqueros clásicos de corte regular', 49.99, 30, 'Ropa', 'https://via.placeholder.com/300x300?text=Pantalon'),
-      ('Chaqueta de Abrigo', 'Chaqueta impermeable para invierno', 79.99, 20, 'Ropa', 'https://via.placeholder.com/300x300?text=Chaqueta'),
-      ('Zapatos Deportivos', 'Zapatillas cómodas para correr', 89.99, 25, 'Ropa', 'https://via.placeholder.com/300x300?text=Zapatos'),
-      
-      ('Smartphone XL', 'Teléfono inteligente con pantalla de 6.5 pulgadas', 299.99, 15, 'Electrónicos', 'https://via.placeholder.com/300x300?text=Smartphone'),
-      ('Auriculares Bluetooth', 'Auriculares inalámbricos con cancelación de ruido', 89.99, 20, 'Electrónicos', 'https://via.placeholder.com/300x300?text=Auriculares'),
-      ('Tablet 10"', 'Tablet con pantalla de alta resolución', 199.99, 18, 'Electrónicos', 'https://via.placeholder.com/300x300?text=Tablet'),
-      ('Cargador Inalámbrico', 'Base de carga rápida para dispositivos', 35.99, 40, 'Electrónicos', 'https://via.placeholder.com/300x300?text=Cargador'),
-      
-      ('Lámpara LED', 'Lámpara de escritorio con regulador de intensidad', 35.00, 25, 'Hogar', 'https://via.placeholder.com/300x300?text=Lampara'),
-      ('Cojín Decorativo', 'Cojín suave para sofá en varios colores', 18.50, 30, 'Hogar', 'https://via.placeholder.com/300x300?text=Cojin'),
-      ('Espejo de Pared', 'Espejo decorativo para salón', 45.00, 12, 'Hogar', 'https://via.placeholder.com/300x300?text=Espejo'),
-      ('Maceta Cerámica', 'Maceta artesanal para plantas de interior', 22.99, 35, 'Hogar', 'https://via.placeholder.com/300x300?text=Maceta')
+      INSERT INTO autores (nombre, fecha_nacimiento, fecha_fallecimiento, created_at, updated_at)
+      VALUES
+      ('Manuel Font de Anta', '1895-10-10', '1936-07-10', NOW(), NOW()),
+      ('Vicente Gómez-Zarzuela', '1870-01-01', '1940-01-01', NOW(), NOW()),
+      ('Abel Moreno', '1944-02-01', NULL, NOW(), NOW()),
+      ('Pedro Braña Martínez', '1895-12-05', '1967-01-01', NOW(), NOW()),
+      ('Pedro Gámez Laserna', '1907-09-10', '1987-04-18', NOW(), NOW())
     `);
 
-    // Insertar un usuario de prueba con password hasheado
+
+    // ======================
+    // MARCHAS
+    // ======================
     await pool.query(`
-      INSERT INTO clientes (nombre, email, password) VALUES 
-      ('Usuario Prueba', 'test@example.com', '$2a$10$N9qo8uLOickgx2ZMRZoMye.JfVK7fCQpNpCPq9QdoW6lQk1K6kMSO')
+      INSERT INTO marchas (titulo, anio, descripcion, duracion_segundos, tipo, dedicatoria, created_at, updated_at)
+      VALUES
+      ('Amarguras', 1919, 'Considerada el himno de la Semana Santa', 430, 'banda de música', 'A la Virgen de la Amargura', NOW(), NOW()),
+      ('Virgen del Valle', 1898, 'Clásico intemporal del Jueves Santo', 450, 'banda de música', NULL, NOW(), NOW()),
+      ('La Madrugá', 1987, 'Emblema del autor Abel Moreno', 420, 'banda de música', NULL, NOW(), NOW()),
+      ('Coronación de la Macarena', 1964, 'Marcha solemne dedicada a la coronación', 440, 'banda de música', 'A la Esperanza Macarena', NOW(), NOW()),
+      ('Pasa la Virgen Macarena', 1959, NULL, 410, 'banda de música', 'A la Esperanza Macarena', NOW(), NOW()),
+      ('Encarnación Coronada', 1994, 'Marcha de la Coronación de la Virgen de la Encarnación de San Benito', 430, 'banda de música', NULL, NOW(), NOW()),
+      ('Soleá, dame la mano', 1918, 'Obra emocional y profunda', 460, 'banda de música', 'A la Esperanza de Triana', NOW(), NOW()),
+      ('Pasan los Campanilleros', 1924, 'Muy reconocida por su melodía', 400, 'banda de música', 'Al Cristo de las Siete Palabras', NOW(), NOW()),
+      ('Reina de Triana', 1988, NULL, 420, 'banda de música', 'A la Esperanza de Triana', NOW(), NOW())
+    `);
+
+
+    // ======================
+    // BANDAS
+    // ======================
+    await pool.query(`
+      INSERT INTO bandas (nombre, tipo, localidad, anio_fundacion,created_at, updated_at)
+      VALUES
+      ('Asociación Músico-Cultural “Nuestra Señora de la Paz”', 'banda de música', 'Málaga', 1997, NOW(), NOW()),
+      ('Sociedad Filarmónica Nuestra Señora de La Oliva de Salteras', 'banda de música', 'Salteras (Sevilla)', 1913, NOW(), NOW()),
+      ('Banda Municipal de Sevilla', 'banda de música', 'Sevilla', 1838, NOW(), NOW()),
+      ('Banda del Sol', 'banda de música', 'Sevilla', 1975, NOW(), NOW()),
+      ('Bandas de cornetas y tambores Nuestra Señora de la Victoria y Sagrada Columna y Azotes - Las Cigarreras -', 'cornetas y tambores', 'Sevilla', 1979, NOW(), NOW()),
+      ('Agrupación Musical Virgen de los Reyes', 'agrupación musical', 'Sevilla', 1980, NOW(), NOW())
+    `);
+
+
+    // ======================
+    // RELACIONES marchas_autores
+    // ======================
+    await pool.query(`
+      INSERT INTO marchas_autores (marcha_id, autor_id)
+      VALUES
+      (1, 1),  -- Amarguras - Font de Anta
+      (2, 2),  -- Virgen del Valle - Zarzuela
+      (3, 3),  -- La Madrugá - Abel Moreno
+      (4, 4),  -- Coronación Macarena - Braña
+      (5, 5),  -- Pasa la Virgen Macarena - Gámez Laserna
+      (6, 3),  -- Encarnación Coronada - Abel Moreno
+      (7, 1),  -- Soleá dame la mano - Font de Anta
     `);
 
     console.log("✅ Datos de ejemplo insertados correctamente");
-    console.log("👤 Usuario de prueba creado: test@example.com / 123456");
-    console.log("📦 12 productos creados en 3 categorías: Ropa, Electrónicos, Hogar");
 
   } catch (error) {
-    console.error("❌ Error insertando datos de ejemplo:", error.message);
+    console.error("❌ Error insertando datos de ejemplo:", error);
   }
 }
-
-// Ejecutar el script
-crearTablas();
+}

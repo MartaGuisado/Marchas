@@ -1,46 +1,32 @@
-// server.js
-import 'dotenv/config';
-import express from 'express';
-import cors from 'cors';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+dotenv.config();
 
-import pool from './config/db.js';
-
+import marchasRoutes from "./routes/marchasRoutes.js";
+import autoresRoutes from "./routes/autoresRoutes.js";
+import bandasRoutes from "./routes/bandasRoutes.js";
+import usuariosRoutes from "./routes/usuariosRoutes.js";
+import favoritosRoutes from "./routes/favoritosRoutes.js";
+import errorHandler from "./middleware/errorHandler.js";
 
 const app = express();
 
-// Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Ruta raíz de prueba
-app.get('/', (req, res) => {
-  res.send('API Node + MySQL - Semana Santa');
-});
+// Rutas
+app.use("/api/marchas", marchasRoutes);
+app.use("/api/autores", autoresRoutes);
+app.use("/api/bandas", bandasRoutes);
+app.use("/api/usuarios", usuariosRoutes);
+app.use("/api/favoritos", favoritosRoutes);
 
-// Ruta para probar la conexión con la base de datos
-app.get('/api/probar-bbdd', async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT NOW() AS fecha');
-    res.json({
-      ok: true,
-      mensaje: 'Conexión correcta con la base de datos',
-      fecha: rows[0].fecha
-    });
-  } catch (error) {
-    res.status(500).json({
-      ok: false,
-      mensaje: 'Error al conectar con la base de datos',
-      error: error.message
-    });
-  }
-});
+// Middleware global de errores
+app.use(errorHandler);
 
-// Rutas de marchas (todavia no esta creada)
-//app.use('/api/marchas', marchasRoutes);
-
-// Arrancar el servidor
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
-  console.log(`Servidor escuchando en http://localhost:${PORT}`);
+  console.log(`🎧 Servidor escuchando en http://localhost:${PORT}`);
 });
+
