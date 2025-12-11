@@ -42,7 +42,7 @@ async function crearTablas() {
     await crearTablaBandas();
     await crearTablaMarchasAutores();
     await crearTablaUsuarios();
-    await crearTablaUsuariosFavoritos();
+    await crearTablaFavoritos();
     
     // Insertar datos de ejemplo para pruebas
     await insertarDatosDeEjemplo();
@@ -135,7 +135,7 @@ async function crearTablaAutores() {
     fecha_fallecimiento DATE NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL
-);ENGINE=InnoDB 
+) ENGINE=InnoDB 
       COMMENT='Listado de compositores de las marchas'
   `);
   
@@ -180,7 +180,7 @@ async function crearTablaBandas() {
     anio_fundacion INT NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL
-); ENGINE=InnoDB 
+) ENGINE=InnoDB 
       COMMENT='Listado de formaciones musicales que interpretan las marchas'
   `);
   
@@ -218,7 +218,7 @@ async function crearTablaMarchasAutores() {
     FOREIGN KEY (autor_id) REFERENCES autores(id)
         ON DELETE CASCADE
         ON UPDATE CASCADE
-); ENGINE=InnoDB 
+) ENGINE=InnoDB 
       COMMENT='Vincular marchas con sus autores (relación muchos a muchos)'
   `);
   
@@ -262,7 +262,7 @@ async function crearTablaUsuarios() {
   email_verificado TINYINT(1) DEFAULT 0,
   activo TINYINT(1) DEFAULT 1,
   INDEX idx_nombre (nombre)
-);
+)
 ENGINE=InnoDB
 COMMENT='Usuario registrados en el sistema';
 `);
@@ -298,11 +298,12 @@ CREATE TABLE usuarios_favoritos (
   UNIQUE KEY unique_fav (usuario_id, marcha_id),
   FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
   FOREIGN KEY (marcha_id) REFERENCES marchas(id) ON DELETE CASCADE
-);
+)
 ENGINE=InnoDB
 COMMENT='Usuario registrados en el sistema';
 `);
-
+console.log("✅ Tabla 'usuarios_favoritos' creada");
+}
 /**
  * ==========================================
  * INSERCIÓN DE DATOS DE EJEMPLO
@@ -388,7 +389,7 @@ async function insertarDatosDeEjemplo() {
       (4, 4),  -- Coronación Macarena - Braña
       (5, 5),  -- Pasa la Virgen Macarena - Gámez Laserna
       (6, 3),  -- Encarnación Coronada - Abel Moreno
-      (7, 1),  -- Soleá dame la mano - Font de Anta
+      (7, 1)  -- Soleá dame la mano - Font de Anta
     `);
 
     console.log("✅ Datos de ejemplo insertados correctamente");
@@ -397,4 +398,5 @@ async function insertarDatosDeEjemplo() {
     console.error("❌ Error insertando datos de ejemplo:", error);
   }
 }
-}
+
+crearTablas();

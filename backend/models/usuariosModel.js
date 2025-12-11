@@ -9,6 +9,11 @@ export const crearUsuario = async (nombre, email, hashedPassword) => {
   return result.insertId;
 };
 
+export const obtenerUsuarios = async () => {
+    const [rows] = await pool.query("SELECT * FROM usuarios");
+    return rows;
+}
+
 export const obtenerUsuarioPorEmail = async (email) => {
   const [rows] = await pool.query("SELECT * FROM usuarios WHERE email = ?", [email]);
   return rows[0];
