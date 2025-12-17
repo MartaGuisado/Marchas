@@ -9,6 +9,7 @@ import bandasRoutes from "./routes/bandasRoutes.js";
 import usuariosRoutes from "./routes/usuariosRoutes.js";
 import favoritosRoutes from "./routes/favoritosRoutes.js";
 import errorHandler from "./middleware/errorHandler.js";
+import authRoutes from "./routes/authRoutes.js";
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use("/api/autores", autoresRoutes);
 app.use("/api/bandas", bandasRoutes);
 app.use("/api/usuarios", usuariosRoutes);
 app.use("/api/favoritos", favoritosRoutes);
+app.use("/api/auth", authRoutes);
 
 // Middleware global de errores
 app.use(errorHandler);

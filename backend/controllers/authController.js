@@ -1,47 +1,77 @@
-// controllers/authController.js
-import bcrypt from "bcrypt"; // Importación de paquete de terceros
-import jwt from "jsonwebtoken"; // Importación de paquete de terceros
-import User from "../models/usuariosModel.js"; // Nota 1: Módulo local con extensión .js
+// backend/controllers/authController.js
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import {
+  crearUsuario,
+  obtenerUsuarioPorEmail
+} from "../models/usuariosModel.js";
 
-export const register = async (req, res) => { // Nota 2: Exportación nombrada
-  try {
-    const { username, email, password } = req.body;
+/* ===========================
+   REGISTRO
+=========================== */
+export const registro = async (req, res) => {
+  try {
+    const { nombre, email, password } = req.body;
 
-    // 
+    const existingUser = await obtenerUsuarioPorEmail(email);
+    if (existingUser) {
+      return res.status(400).json({ message: "El email ya está registrado" });
+    }
 
-    const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({
-      username,
-      email,
-      password: hashed
-    });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const userId = await crearUsuario(nombre, email, hashedPassword);
 
-    res.json({ message: "Usuario registrado", userId: user._id });
-  } catch (err) {
-    // Manejo de errores
-    res.status(500).json({ error: "Error al registrar usuario" });
-  }
+    res.status(201).json({
+      message: "Usuario registrado",
+      userId
+    });
+  } catch (error) {
+    console.error("❌ Error en registro:", error);
+    res.status(500).json({ message: "Error al registrar usuario" });
+  }
 };
 
-export const login = async (req, res) => { // Nota 2: Exportación nombrada
-  try {
-    const { email, password } = req.body;
+/* ===========================
+   LOGIN
+=========================== */
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user)
-      return res.status(400).json({ error: "Credenciales inválidas" });
+    const user = await obtenerUsuarioPorEmail(email);
 
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid)
-      return res.status(400).json({ error: "Credenciales inválidas" });
+    // 🔎 DEBUG CLAVE (PUNTO 5)
+    console.log("🧪 USER DESDE BD:", user);
 
-    // Nota 3: La variable de entorno (process.env.JWT_SECRET) sigue funcionando igual.
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d"
-    });
+    if (!user) {
+      return res.status(400).json({ message: "Credenciales inválidas" });
+    }
 
-    res.json({ message: "Login correcto", token });
-  } catch (err) {
-    res.status(500).json({ error: "Error al iniciar sesión" });
-  }
+    // ⚠️ OJO AQUÍ: revisaremos este campo tras ver el console.log
+    const validPassword = await bcrypt.compare(password, user.password);
+
+    if (!validPassword) {
+      return res.status(400).json({ message: "Credenciales inválidas" });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      message: "Login correcto",
+      token,
+      user: {
+        id: user.id,
+        nombre: user.nombre,
+        email: user.email
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Error en login:", error);
+    res.status(500).json({ message: "Error al iniciar sesión" });
+  }
 };
