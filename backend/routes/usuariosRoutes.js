@@ -6,7 +6,7 @@ import * as usuariosController from "../controllers/usuariosController.js"; // I
 const router = express.Router();
 
 // Las rutas GET no requieren autenticación
-router.get("/", usuariosController.getUsuarios);
+router.get("/", auth, usuariosController.getUsuarios);
 router.get("/:id", usuariosController.getUsuario);
 
 // Las rutas PUT y DELETE (modificación/eliminación) sí requieren autenticación (auth middleware)
