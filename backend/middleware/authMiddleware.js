@@ -1,24 +1,21 @@
-// backend/middlewares/authMiddleware.js
-import jwt from "jsonwebtoken"; // Nota 1
+import jwt from "jsonwebtoken";
 
-export default function auth(req, res, next) { // Nota 2
- // El token se extrae del encabezado 'Authorization', limpiando el prefijo 'Bearer '
- const token = req.header("Authorization")?.replace("Bearer ", "");
+const authMiddleware = (req, res, next) => {
+  const authHeader = req.headers.authorization;
 
-// 1. Verificar si existe el token
- if (!token) {
- return res.status(401).json({ message: "Acceso denegado. Falta token." });
- }
+  if (!authHeader) {
+    return res.status(401).json({ message: "No hay token" });
+  }
 
- try {
- // 2. Verificar y decodificar el token JWT 
- const decoded = jwt.verify(token, process.env.JWT_SECRET);
- 
- // 3. Adjuntar la información del usuario a la solicitud y pasar al siguiente middleware/controlador
- req.user = decoded; 
- next();
- } catch (error) {
- // Error si el token no es válido (ej. expirado o falsificado)
- return res.status(400).json({ message: "Token inválido." });
- }
+  const token = authHeader.split(" ")[1]; // Bearer TOKEN
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // { id, email }
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Token inválido o expirado" });
+  }
 };
+
+export default authMiddleware;

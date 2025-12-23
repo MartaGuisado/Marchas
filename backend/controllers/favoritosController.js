@@ -1,7 +1,7 @@
 // backend/controllers/favoritosController.js
 import * as Favorito from "../models/favoritosModel.js"; 
 
-export const addFavorito = async (req, res, next) => {
+export const agregarFavorito = async (req, res, next) => {
  try {
  // Obtenido del middleware de autenticación
  const { marcha_id } = req.body;
@@ -16,7 +16,7 @@ export const addFavorito = async (req, res, next) => {
 }
 };
 
-export const getFavoritos = async (req, res, next) => {
+export const obtenerFavoritos = async (req, res, next) => {
  try {
  // Consulta para obtener solo los favoritos del usuario autenticado
  const usuario_id = req.user.id;
